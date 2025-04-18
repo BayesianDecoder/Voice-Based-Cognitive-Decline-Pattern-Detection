@@ -3,21 +3,27 @@ import numpy as np
 import librosa
 import torch
 import tempfile
-import matplotlib.pyplot as plt
 from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq, pipeline
 import nltk
 from nltk.corpus import wordnet as wn
+from huggingface_hub import login
+import os
 
 # Download NLTK data
 nltk.download('punkt')
 nltk.download('wordnet')
 
-# === Model Setup ===
-AUDIO_MODEL = "openai/whisper-tiny"  # lightweight & public
-device = "cpu"  # safer for Streamlit Cloud
-device_index = -1  # for pipeline
+# === Authenticate with Hugging Face ===
+HF_TOKEN = os.getenv("HF_TOKEN")
+if HF_TOKEN:
+    login(token=HF_TOKEN)
 
-# Load Whisper model + processor
+# === Model Setup ===
+AUDIO_MODEL = "openai/whisper-tiny"  # smallest public Whisper model
+device = "cpu"  # Streamlit Cloud compatible
+device_index = -1  # used by pipeline()
+
+# Load model + processor
 speech_model = AutoModelForSpeechSeq2Seq.from_pretrained(AUDIO_MODEL).to(device)
 processor = AutoProcessor.from_pretrained(AUDIO_MODEL)
 
@@ -30,7 +36,7 @@ asr_pipeline = pipeline(
     device=device_index
 )
 
-# === Cognitive Analysis Helpers ===
+# === Cognitive Feature Extractors ===
 HESITATION_MARKERS = ["uh", "um", "erm", "ah", "eh"]
 
 def compute_lexical_diversity(text):
@@ -88,9 +94,9 @@ def extract_features(file):
 # === Streamlit UI ===
 st.set_page_config(page_title="🧠 Cognitive Speech Analyzer", layout="centered")
 st.title("🧠 Cognitive Speech Analyzer")
-st.markdown("Upload a `.wav` file to extract cognitive-linguistic and acoustic markers from speech.")
+st.markdown("Upload a `.wav` file to analyze speech for cognitive-linguistic and acoustic patterns.")
 
-uploaded_file = st.file_uploader("Upload an audio file", type=["wav"])
+uploaded_file = st.file_uploader("Upload Audio", type=["wav"])
 
 if uploaded_file is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
@@ -98,7 +104,7 @@ if uploaded_file is not None:
         temp_path = temp_file.name
 
     st.audio(temp_path)
-    st.info("Transcribing and analyzing...")
+    st.info("Transcribing and extracting features...")
 
     try:
         features, transcript = extract_features(temp_path)
@@ -106,8 +112,7 @@ if uploaded_file is not None:
         st.success("✅ Analysis complete!")
         st.markdown(f"**📝 Transcript:**\n\n{transcript}")
 
-        # Display features
-        st.markdown("### 🔬 Cognitive & Acoustic Features")
+        st.markdown("### 📊 Cognitive & Acoustic Features")
         labels = [
             "Word Count", "Sentence Count", "Avg Words/Sentence", "Lexical Diversity",
             "Tempo", "Zero Crossing Rate", "Energy", "Spectral Centroid",
@@ -118,4 +123,6 @@ if uploaded_file is not None:
             st.write(f"**{name}:** {value:.4f}")
 
     except Exception as e:
-        st.error(f"❌ Failed to process audio: {e}")
+        st.error(f"❌ Error: {e}")
+
+
