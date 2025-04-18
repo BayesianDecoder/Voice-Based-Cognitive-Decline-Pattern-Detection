@@ -1,0 +1,8 @@
+streamlit
+librosa
+transformers
+torch
+scikit-learn
+matplotlib
+nltk
+
