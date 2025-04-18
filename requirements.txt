@@ -2,7 +2,6 @@ streamlit
 librosa==0.10.1
 transformers
 torch==2.0.1
-
 scikit-learn
 matplotlib
 nltk
