@@ -8,13 +8,16 @@ from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq, pipeline
 import nltk
 from nltk.corpus import wordnet as wn
 
+# Download NLTK data
 nltk.download('punkt')
 nltk.download('wordnet')
 
 # === Model Setup ===
-AUDIO_MODEL = "openai/whisper-tiny"  # light & fast for Streamlit Cloud
-device = "cuda" if torch.cuda.is_available() else "cpu"
+AUDIO_MODEL = "openai/whisper-tiny"  # lightweight & public
+device = "cpu"  # safer for Streamlit Cloud
+device_index = -1  # for pipeline
 
+# Load Whisper model + processor
 speech_model = AutoModelForSpeechSeq2Seq.from_pretrained(AUDIO_MODEL).to(device)
 processor = AutoProcessor.from_pretrained(AUDIO_MODEL)
 
@@ -24,7 +27,7 @@ asr_pipeline = pipeline(
     tokenizer=processor.tokenizer,
     feature_extractor=processor.feature_extractor,
     return_timestamps=True,
-    device=0 if torch.cuda.is_available() else -1
+    device=device_index
 )
 
 # === Cognitive Analysis Helpers ===
